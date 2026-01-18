@@ -1,0 +1,20 @@
+{
+  "name": "opencode-session",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "opencode-session": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --compile --outfile=opencode-session",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.1.74"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  }
+}
