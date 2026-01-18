@@ -247,6 +247,22 @@ export async function loadProjectInfos(
     })
   }
 
+  // Add projects with no sessions
+  for (const [projectID, project] of projects) {
+    // Skip if already added (has sessions)
+    if (sessionsByProject.has(projectID)) continue
+
+    const isOrphan = !directoryExists(project.worktree)
+
+    projectInfos.push({
+      ...project,
+      sessionCount: 0,
+      totalSizeBytes: 0,
+      isOrphan,
+      sessions: [],
+    })
+  }
+
   // Sort by updated time (most recent first)
   projectInfos.sort((a, b) => b.time.updated - a.time.updated)
 
