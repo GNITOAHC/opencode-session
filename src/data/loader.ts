@@ -18,6 +18,7 @@ import type {
   ProjectInfo,
   Message,
   Part,
+  Todo,
   FrecencyEntry,
   LogFile,
   ProjectStorageInfo,
@@ -389,6 +390,16 @@ export async function loadParts(messageID: string): Promise<Part[]> {
   })
 
   return parts
+}
+
+export async function loadTodos(sessionID: string): Promise<Todo[]> {
+  try {
+    const todoPath = join(TODO_DIR, `${sessionID}.json`)
+    const content = await readFile(todoPath, "utf-8")
+    return JSON.parse(content) as Todo[]
+  } catch {
+    return [] // No todos for this session
+  }
 }
 
 export async function getProjectStorageInfo(projectID: string): Promise<ProjectStorageInfo> {

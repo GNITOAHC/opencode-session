@@ -14,9 +14,15 @@ export interface DetailViewerItem {
   value: string  // For identifying item on Enter
 }
 
+export interface DetailViewerSection {
+  label: string  // e.g., "Todos:"
+  lines: string[]  // Non-selectable text lines
+}
+
 export interface DetailViewerData {
   title: string
   fields: { label: string; value: string }[]
+  sections?: DetailViewerSection[]  // Optional non-selectable sections before items
   items: DetailViewerItem[]
   itemsLabel?: string  // e.g., "Sessions:", "Messages:"
 }
@@ -29,6 +35,7 @@ export class DetailViewer {
   private box: BoxRenderable
   private titleText: TextRenderable
   private fieldsText: TextRenderable
+  private sectionsText: TextRenderable
   private itemsLabelText: TextRenderable
   private itemsText: TextRenderable
   private hintsText: TextRenderable
@@ -71,6 +78,13 @@ export class DetailViewer {
       fg: "#CCCCCC",
     })
 
+    // Non-selectable sections (e.g., Todos)
+    this.sectionsText = new TextRenderable(renderer, {
+      id: "detail-viewer-sections",
+      content: "",
+      fg: "#AAAAAA",
+    })
+
     // Items section label
     this.itemsLabelText = new TextRenderable(renderer, {
       id: "detail-viewer-items-label",
@@ -95,6 +109,7 @@ export class DetailViewer {
 
     this.box.add(this.titleText)
     this.box.add(this.fieldsText)
+    this.box.add(this.sectionsText)
     this.box.add(this.itemsLabelText)
     this.box.add(this.itemsText)
     this.box.add(this.hintsText)
@@ -119,6 +134,23 @@ export class DetailViewer {
       .join("\n")
     this.fieldsText.content = fieldsContent
 
+    // Build sections content (non-selectable)
+    let sectionsContent = ""
+    let sectionsHeight = 0
+    if (data.sections && data.sections.length > 0) {
+      const sectionParts: string[] = []
+      for (const section of data.sections) {
+        sectionParts.push(`\n${section.label}`)
+        sectionsHeight += 2  // label + blank line
+        for (const line of section.lines) {
+          sectionParts.push(`  ${line}`)
+          sectionsHeight += 1
+        }
+      }
+      sectionsContent = sectionParts.join("\n")
+    }
+    this.sectionsText.content = sectionsContent
+
     // Items label
     this.itemsLabelText.content = data.itemsLabel ? `\n${data.itemsLabel}` : ""
 
@@ -130,10 +162,10 @@ export class DetailViewer {
     // Calculate dimensions
     const terminalHeight = this.renderer.terminalHeight
     const terminalWidth = this.renderer.terminalWidth
-    // Account for: border(2) + padding(2) + title(1) + fields + itemsLabel(1) + hints(1) + margins
+    // Account for: border(2) + padding(2) + title(1) + fields + sections + itemsLabel(1) + hints(1) + margins
     const fieldsHeight = data.fields.length + 1
     const labelHeight = data.itemsLabel ? 2 : 0
-    this.itemsViewportHeight = Math.max(3, terminalHeight - 10 - fieldsHeight - labelHeight)
+    this.itemsViewportHeight = Math.max(3, terminalHeight - 10 - fieldsHeight - sectionsHeight - labelHeight)
     this.contentWidth = terminalWidth - 6  // border(2) + padding(2) + margin
 
     this.updateContent()
