@@ -1,7 +1,9 @@
+import { readFile } from "node:fs/promises"
 import type { StateManager } from "../state"
 import type { LogListView } from "../views/log-list"
 import type { ViewController, ControllerContext } from "./index"
 import { ConfirmDialogController, type ConfirmDetails } from "./confirm-controller"
+import { LogViewerController } from "./log-viewer-controller"
 import { Action, LOG_KEYBINDINGS, type KeyBinding } from "../keybindings"
 import { formatBytes } from "../../utils"
 
@@ -28,6 +30,9 @@ export class LogController implements ViewController {
         return true
       case Action.DELETE_ALL:
         this.initiateDeleteAll(ctx)
+        return true
+      case Action.ENTER:
+        this.viewLog(ctx)
         return true
       case Action.HELP:
         this.showHelp(ctx)
@@ -141,5 +146,24 @@ export class LogController implements ViewController {
 
   private showHelp(ctx: ControllerContext): void {
     ctx.statusBar.setMessage(`Help: ${this.getHelpText()}`)
+  }
+
+  private async viewLog(ctx: ControllerContext): Promise<void> {
+    const currentIndex = ctx.listContainer.getSelectedIndex()
+    const logs = this.view.getItems()
+    
+    if (currentIndex < 0 || currentIndex >= logs.length) {
+      this.state.setStatus("No log file selected")
+      return
+    }
+
+    const log = logs[currentIndex]
+    
+    try {
+      const content = await readFile(log.path, "utf-8")
+      ctx.pushController(new LogViewerController(log.filename, content))
+    } catch (error) {
+      this.state.setStatus(`Error reading log: ${error}`)
+    }
   }
 }

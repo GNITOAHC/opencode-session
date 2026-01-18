@@ -7,7 +7,7 @@ import {
 import { loadAllData } from "../data/loader"
 import { StateManager, StateEvent } from "./state"
 import { Action, findAction, getHintsForView } from "./keybindings"
-import { Header, TabBar, StatusBar, ConfirmDialog, ListContainer } from "./components"
+import { Header, TabBar, StatusBar, ConfirmDialog, ListContainer, LogViewer } from "./components"
 import { createViews, getView, type ViewMap } from "./views"
 import { createController, type ViewController, type ControllerContext } from "./controllers"
 
@@ -27,6 +27,7 @@ export class App {
   private listContainer!: ListContainer
   private statusBar!: StatusBar
   private confirmDialog!: ConfirmDialog
+  private logViewer!: LogViewer
 
   // Controller Stack
   private controllerStack: ViewController[] = []
@@ -74,6 +75,7 @@ export class App {
     this.listContainer = new ListContainer(this.renderer)
     this.statusBar = new StatusBar(this.renderer)
     this.confirmDialog = new ConfirmDialog(this.renderer)
+    this.logViewer = new LogViewer(this.renderer)
 
     // Build hierarchy
     this.mainContainer.add(this.header.getRenderable())
@@ -82,6 +84,7 @@ export class App {
     this.mainContainer.add(this.statusBar.getRenderable())
     this.renderer.root.add(this.mainContainer)
     this.renderer.root.add(this.confirmDialog.getRenderable())
+    this.renderer.root.add(this.logViewer.getRenderable())
 
     // Set initial state
     this.header.setLoading()
@@ -182,6 +185,7 @@ export class App {
       state: this.state,
       listContainer: this.listContainer,
       confirmDialog: this.confirmDialog,
+      logViewer: this.logViewer,
       header: this.header,
       statusBar: this.statusBar,
       loadData: () => this.loadData(),

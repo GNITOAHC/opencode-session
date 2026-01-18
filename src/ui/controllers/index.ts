@@ -2,6 +2,7 @@ import type { ViewType } from "../../types"
 import type { StateManager } from "../state"
 import type { ListContainer } from "../components/list-container"
 import type { ConfirmDialog } from "../components/confirm-dialog"
+import type { LogViewer } from "../components/log-viewer"
 import type { Header } from "../components/header"
 import type { StatusBar } from "../components/status-bar"
 import type { ViewMap } from "../views"
@@ -18,6 +19,7 @@ export interface ControllerContext {
   state: StateManager
   listContainer: ListContainer
   confirmDialog: ConfirmDialog
+  logViewer: LogViewer
   header: Header
   statusBar: StatusBar
   loadData: () => Promise<void>
@@ -82,3 +84,4 @@ export { MainController } from "./main-controller"
 export { OrphanController } from "./orphan-controller"
 export { LogController } from "./log-controller"
 export { ConfirmDialogController, type ConfirmDetails, type ConfirmField } from "./confirm-controller"
+export { LogViewerController } from "./log-viewer-controller"

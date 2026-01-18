@@ -28,6 +28,11 @@ export enum Action {
   BACK = "back",
   CONFIRM_YES = "confirm-yes",
   CONFIRM_NO = "confirm-no",
+  ENTER = "enter",
+  SCROLL_UP = "scroll-up",
+  SCROLL_DOWN = "scroll-down",
+  SCROLL_TOP = "scroll-top",
+  SCROLL_BOTTOM = "scroll-bottom",
 }
 
 // ============================================================================
@@ -66,8 +71,18 @@ export const LOG_KEYBINDINGS: KeyBinding[] = [
   { keys: ["space"], action: Action.TOGGLE_SELECT, description: "Space:select" },
   { keys: ["a"], action: Action.SELECT_ALL, description: "a:all" },
   { keys: ["D"], action: Action.DELETE_ALL, description: "D:delete-all" },
+  { keys: ["return"], action: Action.ENTER, description: "Enter:view" },
   { keys: ["q"], action: Action.QUIT, description: "q:quit" },
   { keys: ["escape"], action: Action.BACK, description: "" },  // hidden from hints
+]
+
+// Log viewer keybindings
+export const LOG_VIEWER_KEYBINDINGS: KeyBinding[] = [
+  { keys: ["j"], action: Action.SCROLL_DOWN, description: "j:down" },
+  { keys: ["k"], action: Action.SCROLL_UP, description: "k:up" },
+  { keys: ["g"], action: Action.SCROLL_TOP, description: "g:top" },
+  { keys: ["G"], action: Action.SCROLL_BOTTOM, description: "G:bottom" },
+  { keys: ["escape", "q"], action: Action.BACK, description: "Esc/q:back" },
 ]
 
 export const VIEW_KEYBINDINGS: Record<ViewType, KeyBinding[]> = {
