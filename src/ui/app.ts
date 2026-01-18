@@ -120,7 +120,8 @@ export class App {
   private handleKeys(key: KeyEvent): void {
     // Use sequence for printable chars (preserves case like 'G'), otherwise use name for special keys
     // Check if sequence is a printable character (not control chars like \r, \t, \x1b)
-    const isPrintable = key.sequence?.length === 1 && key.sequence.charCodeAt(0) >= 32
+    // Note: > 32 excludes space (charCode 32) so it uses key.name "space" instead
+    const isPrintable = key.sequence?.length === 1 && key.sequence.charCodeAt(0) > 32
     const keyName = isPrintable ? key.sequence : (key.name ?? key.sequence)
     const topController = this.getTopController()
 

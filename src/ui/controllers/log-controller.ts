@@ -4,7 +4,7 @@ import type { LogListView } from "../views/log-list"
 import type { ViewController, ControllerContext } from "./index"
 import { ConfirmDialogController, type ConfirmDetails } from "./confirm-controller"
 import { LogViewerController } from "./log-viewer-controller"
-import { Action, LOG_KEYBINDINGS, type KeyBinding } from "../keybindings"
+import { Action, LOG_KEYBINDINGS, getHintsForView, type KeyBinding } from "../keybindings"
 import { formatBytes } from "../../utils"
 
 // ============================================================================
@@ -51,6 +51,10 @@ export class LogController implements ViewController {
 
   getKeybindings(): KeyBinding[] {
     return LOG_KEYBINDINGS
+  }
+
+  onEnter(ctx: ControllerContext): void {
+    ctx.statusBar.setHints(getHintsForView("logs"))
   }
 
   // --------------------------------------------------------------------------

@@ -2,7 +2,7 @@ import type { StateManager } from "../state"
 import type { OrphanListView } from "../views/orphan-list"
 import type { ViewController, ControllerContext } from "./index"
 import { ConfirmDialogController, type ConfirmDetails } from "./confirm-controller"
-import { Action, ORPHAN_KEYBINDINGS, type KeyBinding } from "../keybindings"
+import { Action, ORPHAN_KEYBINDINGS, getHintsForView, type KeyBinding } from "../keybindings"
 import { formatBytes, truncatePath } from "../../utils"
 
 // ============================================================================
@@ -43,6 +43,10 @@ export class OrphanController implements ViewController {
 
   getKeybindings(): KeyBinding[] {
     return ORPHAN_KEYBINDINGS
+  }
+
+  onEnter(ctx: ControllerContext): void {
+    ctx.statusBar.setHints(getHintsForView("orphans"))
   }
 
   // --------------------------------------------------------------------------

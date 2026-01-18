@@ -4,7 +4,7 @@ import type { ViewController, ControllerContext } from "./index"
 import { ConfirmDialogController, type ConfirmDetails } from "./confirm-controller"
 import { ProjectViewerController } from "./project-viewer-controller"
 import { SessionViewerController } from "./session-viewer-controller"
-import { Action, MAIN_KEYBINDINGS, type KeyBinding } from "../keybindings"
+import { Action, MAIN_KEYBINDINGS, getHintsForView, type KeyBinding } from "../keybindings"
 import { formatBytes, truncatePath } from "../../utils"
 
 // ============================================================================
@@ -48,6 +48,10 @@ export class MainController implements ViewController {
 
   getKeybindings(): KeyBinding[] {
     return MAIN_KEYBINDINGS
+  }
+
+  onEnter(ctx: ControllerContext): void {
+    ctx.statusBar.setHints(getHintsForView("main"))
   }
 
   // --------------------------------------------------------------------------
