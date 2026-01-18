@@ -52,6 +52,7 @@ export const MAIN_KEYBINDINGS: KeyBinding[] = [
   ...BASE_KEYBINDINGS,
   { keys: ["l"], action: Action.EXPAND, description: "l:expand" },
   { keys: ["h"], action: Action.COLLAPSE, description: "h:collapse" },
+  { keys: ["return"], action: Action.ENTER, description: "Enter:view" },
   { keys: ["q"], action: Action.QUIT, description: "q:quit" },
   { keys: ["escape"], action: Action.BACK, description: "" },  // hidden from hints
 ]
@@ -82,6 +83,16 @@ export const LOG_VIEWER_KEYBINDINGS: KeyBinding[] = [
   { keys: ["k"], action: Action.SCROLL_UP, description: "k:up" },
   { keys: ["g"], action: Action.SCROLL_TOP, description: "g:top" },
   { keys: ["G"], action: Action.SCROLL_BOTTOM, description: "G:bottom" },
+  { keys: ["escape", "q"], action: Action.BACK, description: "Esc/q:back" },
+]
+
+// Detail viewer keybindings (project/session/message viewers)
+export const DETAIL_VIEWER_KEYBINDINGS: KeyBinding[] = [
+  { keys: ["j"], action: Action.SCROLL_DOWN, description: "j:down" },
+  { keys: ["k"], action: Action.SCROLL_UP, description: "k:up" },
+  { keys: ["g"], action: Action.SCROLL_TOP, description: "g:top" },
+  { keys: ["G"], action: Action.SCROLL_BOTTOM, description: "G:bottom" },
+  { keys: ["return"], action: Action.ENTER, description: "Enter:view" },
   { keys: ["escape", "q"], action: Action.BACK, description: "Esc/q:back" },
 ]
 

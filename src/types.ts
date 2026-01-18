@@ -71,7 +71,29 @@ export interface Part {
   text?: string
   callID?: string
   tool?: string
-  state?: Record<string, unknown>
+  state?: {
+    status?: string
+    input?: Record<string, unknown>
+    output?: string
+    title?: string
+    metadata?: Record<string, unknown>
+    time?: { start: number; end: number }
+  }
+  time?: { start: number; end: number }
+}
+
+// ============================================================================
+// Project Storage Info
+// ============================================================================
+
+export interface ProjectStorageInfo {
+  sessionFiles: number
+  messageFiles: number
+  partFiles: number
+  diffSize: number
+  todoSize: number
+  totalMessages: number
+  totalParts: number
 }
 
 // ============================================================================

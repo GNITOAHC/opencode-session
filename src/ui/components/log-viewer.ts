@@ -33,7 +33,7 @@ export class LogViewer {
       backgroundColor: "#1a1a1a",
       visible: false,
       padding: 1,
-      zIndex: 200,
+      zIndex: 300,
       flexDirection: "column",
     })
 

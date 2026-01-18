@@ -17,8 +17,10 @@ import type {
   Project,
   ProjectInfo,
   Message,
+  Part,
   FrecencyEntry,
   LogFile,
+  ProjectStorageInfo,
 } from "../types"
 
 // ============================================================================
@@ -314,6 +316,132 @@ export async function loadLogs(): Promise<LogFile[]> {
   logs.sort((a, b) => b.date.getTime() - a.date.getTime())
 
   return logs
+}
+
+// ============================================================================
+// Message & Part Loading
+// ============================================================================
+
+export async function loadMessages(sessionID: string): Promise<Message[]> {
+  const messages: Message[] = []
+
+  try {
+    const messageDir = join(MESSAGE_DIR, sessionID)
+    const files = await readdir(messageDir)
+
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue
+      const message = await readJsonFile<Message>(join(messageDir, file))
+      if (message) {
+        messages.push(message)
+      }
+    }
+  } catch {
+    // No messages for this session
+  }
+
+  // Sort by created time
+  messages.sort((a, b) => a.time.created - b.time.created)
+
+  return messages
+}
+
+export async function loadParts(messageID: string): Promise<Part[]> {
+  const parts: Part[] = []
+
+  try {
+    const partDir = join(PART_DIR, messageID)
+    const files = await readdir(partDir)
+
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue
+      const part = await readJsonFile<Part>(join(partDir, file))
+      if (part) {
+        parts.push(part)
+      }
+    }
+  } catch {
+    // No parts for this message
+  }
+
+  // Sort by time if available, otherwise by ID
+  parts.sort((a, b) => {
+    const aTime = a.time?.start ?? 0
+    const bTime = b.time?.start ?? 0
+    if (aTime !== bTime) return aTime - bTime
+    return a.id.localeCompare(b.id)
+  })
+
+  return parts
+}
+
+export async function getProjectStorageInfo(projectID: string): Promise<ProjectStorageInfo> {
+  let sessionFiles = 0
+  let messageFiles = 0
+  let partFiles = 0
+  let diffSize = 0
+  let todoSize = 0
+  let totalMessages = 0
+  let totalParts = 0
+
+  try {
+    // Count session files
+    const sessionDir = join(SESSION_DIR, projectID)
+    const sessionEntries = await readdir(sessionDir)
+    sessionFiles = sessionEntries.filter((f) => f.endsWith(".json")).length
+
+    // For each session, count messages and parts
+    for (const sessionFile of sessionEntries) {
+      if (!sessionFile.endsWith(".json")) continue
+      const sessionPath = join(sessionDir, sessionFile)
+      const session = await readJsonFile<Session>(sessionPath)
+      if (!session) continue
+
+      // Count messages
+      try {
+        const messageDir = join(MESSAGE_DIR, session.id)
+        const messageEntries = await readdir(messageDir)
+        const msgFiles = messageEntries.filter((f) => f.endsWith(".json"))
+        messageFiles += msgFiles.length
+        totalMessages += msgFiles.length
+
+        // Count parts for each message
+        for (const msgFile of msgFiles) {
+          const msg = await readJsonFile<Message>(join(messageDir, msgFile))
+          if (!msg) continue
+          try {
+            const partDir = join(PART_DIR, msg.id)
+            const partEntries = await readdir(partDir)
+            const prtFiles = partEntries.filter((f) => f.endsWith(".json")).length
+            partFiles += prtFiles
+            totalParts += prtFiles
+          } catch {
+            // No parts
+          }
+        }
+      } catch {
+        // No messages
+      }
+
+      // Get diff size
+      diffSize += await getFileSize(join(SESSION_DIFF_DIR, `${session.id}.json`))
+
+      // Get todo size
+      todoSize += await getFileSize(join(TODO_DIR, `${session.id}.json`))
+    }
+  } catch {
+    // Project directory doesn't exist
+  }
+
+  return {
+    sessionFiles,
+    messageFiles,
+    partFiles,
+    diffSize,
+    todoSize,
+    totalMessages,
+    totalParts,
+  }
 }
 
 // ============================================================================

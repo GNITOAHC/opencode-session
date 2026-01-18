@@ -2,6 +2,8 @@ import type { StateManager } from "../state"
 import type { MainView } from "../views/main-view"
 import type { ViewController, ControllerContext } from "./index"
 import { ConfirmDialogController, type ConfirmDetails } from "./confirm-controller"
+import { ProjectViewerController } from "./project-viewer-controller"
+import { SessionViewerController } from "./session-viewer-controller"
 import { Action, MAIN_KEYBINDINGS, type KeyBinding } from "../keybindings"
 import { formatBytes, truncatePath } from "../../utils"
 
@@ -23,6 +25,9 @@ export class MainController implements ViewController {
       case Action.COLLAPSE:
         this.collapseCurrentProject(ctx)
         return true
+      case Action.ENTER:
+        this.viewCurrentItem(ctx)
+        return true
       case Action.DELETE:
         this.initiateDelete(ctx)
         return true
@@ -38,7 +43,7 @@ export class MainController implements ViewController {
   }
 
   getHelpText(): string {
-    return "j/k=nav, l=expand, h=collapse, d=delete, Tab=next view, q=quit"
+    return "j/k=nav, Enter=view, l=expand, h=collapse, d=delete, Tab=next view, q=quit"
   }
 
   getKeybindings(): KeyBinding[] {
@@ -117,5 +122,17 @@ export class MainController implements ViewController {
 
   private showHelp(ctx: ControllerContext): void {
     ctx.statusBar.setMessage(`Help: ${this.getHelpText()}`)
+  }
+
+  private viewCurrentItem(ctx: ControllerContext): void {
+    const currentIndex = ctx.listContainer.getSelectedIndex()
+    const item = this.view.getItemAt(currentIndex)
+    if (!item) return
+
+    if (item.type === "project") {
+      ctx.pushController(new ProjectViewerController(item.project))
+    } else {
+      ctx.pushController(new SessionViewerController(item.session))
+    }
   }
 }

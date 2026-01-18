@@ -7,7 +7,7 @@ import {
 import { loadAllData } from "../data/loader"
 import { StateManager, StateEvent } from "./state"
 import { Action, findAction, getHintsForView } from "./keybindings"
-import { Header, TabBar, StatusBar, ConfirmDialog, ListContainer, LogViewer } from "./components"
+import { Header, TabBar, StatusBar, ConfirmDialog, ListContainer, LogViewer, DetailViewer } from "./components"
 import { createViews, getView, type ViewMap } from "./views"
 import { createController, type ViewController, type ControllerContext } from "./controllers"
 
@@ -28,6 +28,7 @@ export class App {
   private statusBar!: StatusBar
   private confirmDialog!: ConfirmDialog
   private logViewer!: LogViewer
+  private detailViewer!: DetailViewer
 
   // Controller Stack
   private controllerStack: ViewController[] = []
@@ -76,6 +77,7 @@ export class App {
     this.statusBar = new StatusBar(this.renderer)
     this.confirmDialog = new ConfirmDialog(this.renderer)
     this.logViewer = new LogViewer(this.renderer)
+    this.detailViewer = new DetailViewer(this.renderer)
 
     // Build hierarchy
     this.mainContainer.add(this.header.getRenderable())
@@ -85,6 +87,7 @@ export class App {
     this.renderer.root.add(this.mainContainer)
     this.renderer.root.add(this.confirmDialog.getRenderable())
     this.renderer.root.add(this.logViewer.getRenderable())
+    this.renderer.root.add(this.detailViewer.getRenderable())
 
     // Set initial state
     this.header.setLoading()
@@ -115,7 +118,10 @@ export class App {
   }
 
   private handleKeys(key: KeyEvent): void {
-    const keyName = key.name ?? key.sequence
+    // Use sequence for printable chars (preserves case like 'G'), otherwise use name for special keys
+    // Check if sequence is a printable character (not control chars like \r, \t, \x1b)
+    const isPrintable = key.sequence?.length === 1 && key.sequence.charCodeAt(0) >= 32
+    const keyName = isPrintable ? key.sequence : (key.name ?? key.sequence)
     const topController = this.getTopController()
 
     // Find action using top controller's keybindings
@@ -164,8 +170,9 @@ export class App {
       const popped = this.controllerStack.pop()!
       popped.onExit?.(this.createContext())
       
-      // Restore hints for the new top controller
-      this.statusBar.setHints(getHintsForView(this.state.view))
+      // Re-enter the new top controller to restore its view
+      const newTop = this.getTopController()
+      newTop.onEnter?.(this.createContext())
     }
   }
 
@@ -186,6 +193,7 @@ export class App {
       listContainer: this.listContainer,
       confirmDialog: this.confirmDialog,
       logViewer: this.logViewer,
+      detailViewer: this.detailViewer,
       header: this.header,
       statusBar: this.statusBar,
       loadData: () => this.loadData(),
