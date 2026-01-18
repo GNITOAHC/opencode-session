@@ -25,6 +25,7 @@ export enum Action {
   COLLAPSE = "collapse",
   RELOAD = "reload",
   HELP = "help",
+  BACK = "back",
   CONFIRM_YES = "confirm-yes",
   CONFIRM_NO = "confirm-no",
 }
@@ -42,28 +43,31 @@ const BASE_KEYBINDINGS: KeyBinding[] = [
 ]
 
 // Main view: no selection, has expand/collapse
-const MAIN_KEYBINDINGS: KeyBinding[] = [
+export const MAIN_KEYBINDINGS: KeyBinding[] = [
   ...BASE_KEYBINDINGS,
   { keys: ["l"], action: Action.EXPAND, description: "l:expand" },
   { keys: ["h"], action: Action.COLLAPSE, description: "h:collapse" },
-  { keys: ["q", "escape"], action: Action.QUIT, description: "q:quit" },
+  { keys: ["q"], action: Action.QUIT, description: "q:quit" },
+  { keys: ["escape"], action: Action.BACK, description: "" },  // hidden from hints
 ]
 
 // Orphan view: no selection, has expand/collapse
-const ORPHAN_KEYBINDINGS: KeyBinding[] = [
+export const ORPHAN_KEYBINDINGS: KeyBinding[] = [
   ...BASE_KEYBINDINGS,
   { keys: ["l"], action: Action.EXPAND, description: "l:expand" },
   { keys: ["h"], action: Action.COLLAPSE, description: "h:collapse" },
-  { keys: ["q", "escape"], action: Action.QUIT, description: "q:quit" },
+  { keys: ["q"], action: Action.QUIT, description: "q:quit" },
+  { keys: ["escape"], action: Action.BACK, description: "" },  // hidden from hints
 ]
 
 // Log view: has selection (Space, a, D)
-const LOG_KEYBINDINGS: KeyBinding[] = [
+export const LOG_KEYBINDINGS: KeyBinding[] = [
   ...BASE_KEYBINDINGS,
   { keys: ["space"], action: Action.TOGGLE_SELECT, description: "Space:select" },
   { keys: ["a"], action: Action.SELECT_ALL, description: "a:all" },
   { keys: ["D"], action: Action.DELETE_ALL, description: "D:delete-all" },
-  { keys: ["q", "escape"], action: Action.QUIT, description: "q:quit" },
+  { keys: ["q"], action: Action.QUIT, description: "q:quit" },
+  { keys: ["escape"], action: Action.BACK, description: "" },  // hidden from hints
 ]
 
 export const VIEW_KEYBINDINGS: Record<ViewType, KeyBinding[]> = {
@@ -78,7 +82,7 @@ export const VIEW_KEYBINDINGS: Record<ViewType, KeyBinding[]> = {
 
 export const CONFIRM_KEYBINDINGS: KeyBinding[] = [
   { keys: ["y", "Y", "return"], action: Action.CONFIRM_YES, description: "y:confirm" },
-  { keys: ["n", "N", "escape"], action: Action.CONFIRM_NO, description: "n:cancel" },
+  { keys: ["n", "N", "escape"], action: Action.CONFIRM_NO, description: "n/Esc:cancel" },
 ]
 
 // ============================================================================
@@ -88,6 +92,18 @@ export const CONFIRM_KEYBINDINGS: KeyBinding[] = [
 export function getHintsForView(view: ViewType): string {
   const bindings = VIEW_KEYBINDINGS[view]
   const hints = ["j/k:nav"]
+  
+  for (const binding of bindings) {
+    if (binding.description && !hints.includes(binding.description)) {
+      hints.push(binding.description)
+    }
+  }
+  
+  return hints.join("  ")
+}
+
+export function getHintsFromBindings(bindings: KeyBinding[]): string {
+  const hints: string[] = []
   
   for (const binding of bindings) {
     if (binding.description && !hints.includes(binding.description)) {

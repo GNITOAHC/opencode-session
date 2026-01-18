@@ -5,11 +5,11 @@ import {
   type KeyEvent,
 } from "@opentui/core"
 import { loadAllData } from "../data/loader"
-import { formatBytes } from "../utils"
 import { StateManager, StateEvent } from "./state"
-import { Action, findActionForView, findConfirmAction, getHintsForView } from "./keybindings"
+import { Action, findAction, getHintsForView } from "./keybindings"
 import { Header, TabBar, StatusBar, ConfirmDialog, ListContainer } from "./components"
-import { createViews, getView, getMainView, getOrphanView, type ViewMap } from "./views"
+import { createViews, getView, type ViewMap } from "./views"
+import { createController, type ViewController, type ControllerContext } from "./controllers"
 
 // ============================================================================
 // Main App Class
@@ -27,6 +27,9 @@ export class App {
   private listContainer!: ListContainer
   private statusBar!: StatusBar
   private confirmDialog!: ConfirmDialog
+
+  // Controller Stack
+  private controllerStack: ViewController[] = []
 
   constructor() {
     this.state = new StateManager()
@@ -51,6 +54,9 @@ export class App {
 
     // Load data
     await this.loadData()
+
+    // Push initial controller onto stack
+    this.pushInitialController()
   }
 
   private createUI(): void {
@@ -84,7 +90,11 @@ export class App {
 
   private setupEventListeners(): void {
     // Reset cursor on view/data change
-    this.state.on(StateEvent.VIEW_CHANGED, () => this.updateView(true))
+    this.state.on(StateEvent.VIEW_CHANGED, () => {
+      // Replace base controller when view changes
+      this.controllerStack[0] = createController(this.state.view, this.views, this.state)
+      this.updateView(true)
+    })
     this.state.on(StateEvent.DATA_LOADED, () => this.updateView(true))
     // Preserve cursor on selection/expand change
     this.state.on(StateEvent.SELECTION_CHANGED, () => this.updateView(false))
@@ -97,63 +107,92 @@ export class App {
   private setupKeyboardHandlers(): void {
     this.renderer.keyInput.on("keypress", (key: KeyEvent) => {
       if (this.state.isLoading) return
-
-      if (this.confirmDialog.isVisible()) {
-        this.handleConfirmKeys(key)
-      } else {
-        this.handleMainKeys(key)
-      }
+      this.handleKeys(key)
     })
   }
 
-  private handleMainKeys(key: KeyEvent): void {
+  private handleKeys(key: KeyEvent): void {
     const keyName = key.name ?? key.sequence
-    const action = findActionForView(keyName, this.state.view)
+    const topController = this.getTopController()
 
-    switch (action) {
-      case Action.QUIT:
-        this.quit()
-        break
-      case Action.NEXT_VIEW:
-        this.state.nextView()
-        break
-      case Action.TOGGLE_SELECT:
-        this.toggleSelection()
-        break
-      case Action.SELECT_ALL:
-        this.selectAll()
-        break
-      case Action.DELETE:
-        this.initiateDelete()
-        break
-      case Action.DELETE_ALL:
-        this.initiateDeleteAll()
-        break
-      case Action.EXPAND:
-        this.expandCurrentProject()
-        break
-      case Action.COLLAPSE:
-        this.collapseCurrentProject()
-        break
-      case Action.RELOAD:
-        this.loadData()
-        break
-      case Action.HELP:
-        this.showHelp()
-        break
+    // Find action using top controller's keybindings
+    const action = findAction(keyName, topController.getKeybindings())
+    if (!action) return
+
+    // Global actions only at root level (stack depth == 1)
+    if (this.controllerStack.length === 1) {
+      switch (action) {
+        case Action.QUIT:
+          this.quit()
+          return
+        case Action.NEXT_VIEW:
+          this.switchView()
+          return
+        case Action.RELOAD:
+          this.loadData()
+          return
+      }
+    }
+
+    // Delegate to top controller
+    topController.handleAction(action as Action, this.createContext())
+  }
+
+  // --------------------------------------------------------------------------
+  // Controller Stack Management
+  // --------------------------------------------------------------------------
+
+  private pushInitialController(): void {
+    const controller = createController(this.state.view, this.views, this.state)
+    this.controllerStack.push(controller)
+  }
+
+  private getTopController(): ViewController {
+    return this.controllerStack[this.controllerStack.length - 1]
+  }
+
+  private pushController(controller: ViewController): void {
+    this.controllerStack.push(controller)
+    controller.onEnter?.(this.createContext())
+  }
+
+  private popController(): void {
+    if (this.controllerStack.length > 1) {
+      const popped = this.controllerStack.pop()!
+      popped.onExit?.(this.createContext())
+      
+      // Restore hints for the new top controller
+      this.statusBar.setHints(getHintsForView(this.state.view))
     }
   }
 
-  private handleConfirmKeys(key: KeyEvent): void {
-    const keyName = key.name ?? key.sequence
-    const action = findConfirmAction(keyName)
+  private switchView(): void {
+    // Pop all subviews first (cancel any open dialogs)
+    while (this.controllerStack.length > 1) {
+      const popped = this.controllerStack.pop()!
+      popped.onExit?.(this.createContext())
+    }
 
-    if (action === Action.CONFIRM_YES) {
-      this.confirmDialog.confirm()
-    } else if (action === Action.CONFIRM_NO) {
-      this.confirmDialog.cancel()
+    // Switch to next view (this triggers VIEW_CHANGED event which updates stack[0])
+    this.state.nextView()
+  }
+
+  private createContext(): ControllerContext {
+    return {
+      state: this.state,
+      listContainer: this.listContainer,
+      confirmDialog: this.confirmDialog,
+      header: this.header,
+      statusBar: this.statusBar,
+      loadData: () => this.loadData(),
+      pushController: (c) => this.pushController(c),
+      popController: () => this.popController(),
     }
   }
+
+  // --------------------------------------------------------------------------
+  // Data & View Management
+  // --------------------------------------------------------------------------
 
   private async loadData(): Promise<void> {
     this.state.setLoading(true)
@@ -180,135 +219,6 @@ export class App {
     this.tabBar.setActiveTab(this.state.view)
     this.header.setCounts(view.getItemCount(), this.state.selectedCount)
     this.statusBar.setHints(getHintsForView(this.state.view))
-  }
-
-  private toggleSelection(): void {
-    const index = this.listContainer.getSelectedIndex()
-    this.state.toggleSelection(index)
-  }
-
-  private selectAll(): void {
-    const view = getView(this.views, this.state.view)
-    if (view.config.supportsSelectAll) {
-      this.state.selectAll(view.getItemCount())
-    }
-  }
-
-  private expandCurrentProject(): void {
-    // Works in main and orphans views
-    if (this.state.view !== "main" && this.state.view !== "orphans") return
-
-    const index = this.listContainer.getSelectedIndex()
-    let projectId: string | undefined
-
-    if (this.state.view === "main") {
-      const mainView = getMainView(this.views)
-      projectId = mainView.getProjectIdAt(index)
-    } else {
-      const orphanView = getOrphanView(this.views)
-      projectId = orphanView.getProjectIdAt(index)
-    }
-
-    if (projectId && !this.state.isProjectExpanded(projectId)) {
-      this.state.expandProject(projectId)
-    }
-  }
-
-  private collapseCurrentProject(): void {
-    // Works in main and orphans views
-    if (this.state.view !== "main" && this.state.view !== "orphans") return
-
-    const index = this.listContainer.getSelectedIndex()
-    let projectId: string | undefined
-
-    if (this.state.view === "main") {
-      const mainView = getMainView(this.views)
-      projectId = mainView.getProjectIdAt(index)
-    } else {
-      const orphanView = getOrphanView(this.views)
-      projectId = orphanView.getProjectIdAt(index)
-    }
-
-    if (projectId && this.state.isProjectExpanded(projectId)) {
-      this.state.collapseProject(projectId)
-    }
-  }
-
-  private initiateDelete(): void {
-    const currentIndex = this.listContainer.getSelectedIndex()
-    
-    // For main and orphans views: single-item delete only
-    if (this.state.view === "main" || this.state.view === "orphans") {
-      const view = this.state.view === "main" 
-        ? getMainView(this.views) 
-        : getOrphanView(this.views)
-      
-      const message = view.getDeleteMessageForItem(currentIndex)
-      
-      this.confirmDialog.show(message, async () => {
-        await this.executeDelete([currentIndex])
-      })
-      return
-    }
-    
-    // For logs view: use selected indices or current
-    const indices = this.state.getSelectedOrCurrentIndices(currentIndex)
-    if (indices.length === 0) {
-      this.state.setStatus("Nothing selected")
-      return
-    }
-
-    const view = getView(this.views, this.state.view)
-    const totalSize = view.getTotalSize(indices)
-    const message = view.getDeleteMessage(indices.length, totalSize)
-
-    this.confirmDialog.show(message, async () => {
-      await this.executeDelete(indices)
-    })
-  }
-
-  private initiateDeleteAll(): void {
-    const view = getView(this.views, this.state.view)
-    if (!view.config.supportsDeleteAll) return
-
-    const itemCount = view.getItemCount()
-    if (itemCount === 0) {
-      this.state.setStatus("Nothing to delete")
-      return
-    }
-
-    const allIndices = Array.from({ length: itemCount }, (_, i) => i)
-    const totalSize = view.getTotalSize(allIndices)
-    const message = view.getDeleteMessage(itemCount, totalSize)
-
-    this.confirmDialog.show(message, async () => {
-      await this.executeDelete(allIndices)
-    })
-  }
-
-  private async executeDelete(indices: number[]): Promise<void> {
-    this.state.setLoading(true)
-    this.header.setLoading("Deleting...")
-
-    try {
-      const view = getView(this.views, this.state.view)
-      const result = await view.executeDelete(indices)
-      this.state.setStatus(`Deleted ${result.deletedCount} items, freed ${formatBytes(result.freedBytes)}`)
-      await this.loadData()
-    } catch (error) {
-      this.state.setStatus(`Error: ${error}`)
-    }
-
-    this.state.setLoading(false)
-  }
-
-  private showHelp(): void {
-    const hints: Record<string, string> = {
-      main: "j/k=nav, l=expand, h=collapse, d=delete, Tab=next view, q=quit",
-      orphans: "j/k=nav, l=expand, h=collapse, d=delete, Tab=next view, q=quit",
-      logs: "j/k=nav, Space=select, a=all, d=delete, D=delete-all, Tab=next view, q=quit",
-    }
-    this.statusBar.setMessage(`Help: ${hints[this.state.view]}`)
   }
 
   private quit(): void {

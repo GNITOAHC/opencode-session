@@ -106,7 +106,7 @@ export class OrphanListView extends BaseView {
 
         return {
           name: `    ${title}`,
-          description: `${updated} | ${size}`,
+          description: `    ${updated} | ${size}`,
           value: `session:${session.id}`,
         }
       }
