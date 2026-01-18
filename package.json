@@ -1,14 +1,40 @@
 {
   "name": "opencode-session",
   "version": "0.1.0",
+  "description": "CLI tool to manage OpenCode sessions",
   "type": "module",
+  "main": "./src/index.ts",
   "bin": {
     "opencode-session": "./src/index.ts"
   },
+  "files": [
+    "src",
+    "package.json"
+  ],
   "scripts": {
     "start": "bun run src/index.ts",
-    "build": "bun build src/index.ts --compile --outfile=opencode-session",
     "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "opencode",
+    "session",
+    "cli",
+    "terminal",
+    "tui",
+    "bun"
+  ],
+  "author": "gnitoahc",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gnitoahc/opencode-session.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gnitoahc/opencode-session/issues"
+  },
+  "homepage": "https://github.com/gnitoahc/opencode-session#readme",
+  "engines": {
+    "bun": ">=1.0.0"
   },
   "dependencies": {
     "@opentui/core": "^0.1.74"
